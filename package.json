@@ -1,6 +1,6 @@
 {
   "name": "broccoli-custom-elements",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A small description of broccoli-web-components",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -26,6 +26,7 @@
     "!dist/tests"
   ],
   "devDependencies": {
+    "@types/node": "^12.6.2",
     "broccoli": "^3.1.2",
     "broccoli-cli": "^1.0.0",
     "broccoli-typescript-compiler": "^4.1.0",
@@ -45,4 +46,3 @@
     "node": "8.* || >= 10.*"
   }
 }
-
