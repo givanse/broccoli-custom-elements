@@ -1,6 +1,6 @@
 {
   "name": "broccoli-custom-elements",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A small description of broccoli-web-components",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
