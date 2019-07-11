@@ -1,5 +1,3 @@
-import 'regenerator-runtime/runtime'; // only for tests, because async/await needs it
-
 import chai from 'chai';
 import { buildOutput, createTempDir } from 'broccoli-test-helper';
 
