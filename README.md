@@ -1,27 +1,31 @@
-# broccoli-web-components
-
-Summarize what broccoli-web-components does here.
+# broccoli-custom-elements
 
 ## Usage
 
 ```js
-var BroccoliWebComponents = require('broccoli-web-components');
+// Brocfile.ts
+import BroccoliCustomElements from "broccoli-custom-elements";
 
-module.exports = new BroccoliWebComponents(input, options);
+export default function() {
+  new BroccoliWebComponents("src/custom-elements");
+};
 ```
 
 ## Development
 
 ### Installation
 
-* `git clone <repository-url>`
-* `cd broccoli-web-components`
-* `npm install`
+ ```
+git clone <repository-url>
+cd broccoli-custom-elements
+yarn install
+yarn watch
+```
 
 ### Building
 
-* `npm run build`
+* `yarn build`
 
 ### Testing
 
-* `npm run test` or `npm run test:debug`
+* `yarn test` or `yarn test:debug`

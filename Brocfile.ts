@@ -7,12 +7,15 @@ export default function(/*options*/) {
     tsconfig: {
       compilerOptions: {
         module: "commonjs", 
-        target: "es6",
+        target: "es2017",
+        lib: ["es2017"],
         moduleResolution: "node",
         newLine: "LF",
+        //noEmitHelpers: true,
         rootDir: "src",
         outDir: "dist",
         sourceMap: true,
+        strictNullChecks: true,
         declaration: true,
       },
       files: ["src/index.ts"],

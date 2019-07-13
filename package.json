@@ -1,7 +1,7 @@
 {
   "name": "broccoli-custom-elements",
   "version": "0.0.3",
-  "description": "A small description of broccoli-web-components",
+  "description": "Build and register HTML custom elements",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -15,11 +15,20 @@
   },
   "keywords": [
     "broccoli",
-    "plugin"
+    "plugin",
+    "html",
+    "custom elements",
+    "web components",
+    "shadow dom v0",
+    "shadow dom v1",
+    "html imports"
   ],
-  "author": "",
+  "author": "givanse",
   "license": "MIT",
-  "repository": {},
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:givanse/broccoli-custom-elements.git"
+  },
   "homepage": "",
   "files": [
     "dist/",
@@ -37,7 +46,7 @@
     "typescript": "^3.5.3"
   },
   "dependencies": {
-    "broccoli-plugin": "1.3.1",
+    "broccoli-plugin": "^2.1.0",
     "fs-tree-diff": "^2.0.1",
     "heimdalljs": "^0.2.6",
     "heimdalljs-logger": "^0.1.10"

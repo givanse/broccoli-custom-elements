@@ -3,6 +3,8 @@
 //import { default as _logger } from "heimdalljs-logger";
 import * as fs from "fs";
 import * as path from "path";
+import {readFile, readFolderFiles} from "./io";
+import bundler from "./bundler";
 const BroccoliPlugin = require("broccoli-plugin");
 
 //const logger = _logger("broccoli-web-components"); // eslint-disable-line no-unused-vars
@@ -14,22 +16,10 @@ interface BroccoliPlugin {
 }
 
 interface BroccoliNodeOptions {
-   name: string;
-   annotation: string;
-   debugLog: boolean;
-   persistentOutput: boolean;
- }
-
-function readFile(filePath: string): Promise<string> {
-  return new Promise(function(resolve, reject) {
-    fs.readFile(filePath, "utf8", function(err, text) {
-      if (err) {
-        reject(err);
-      }
-
-      resolve(text);
-    });
-  });
+  name: string;
+  annotation: string;
+  debugLog: boolean;
+  persistentOutput: boolean;
 }
 
 export default class BroccoliCustomElements extends BroccoliPlugin {
@@ -88,38 +78,37 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
     });
   }
 
-  buildInputNode(inputNode: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      fs.readdir(inputNode, (err, filePaths: string[]) => {
-        if (err) {
-          reject(err);
+  buildWebComponents(folderPath: string): Promise<void> {
+    return readFolderFiles(folderPath).then(filePaths => {
+      const wcOutputs = [];
+      for (const filePath of filePaths) {
+        const wcFolderPath = path.join(folderPath, filePath);
+        wcOutputs.push(this.buildWebComponent(wcFolderPath));
+
+        const jsFilePath = path.join(folderPath, filePath, "index.ts");
+        bundler.addCustomElementJSToBundle(jsFilePath);
+      }
+
+      return Promise.all([bundler.getJSText(), ...wcOutputs]).then(results => {
+        const jsText = results.shift();
+
+        let output = ""; 
+        for (const o of results) {
+          output += o;
         }
 
-        const wcOutputs = [];
-        for (const filePath of filePaths) {
-          const wcFolderPath = path.join(inputNode, filePath);
-          wcOutputs.push(this.buildWebComponent(wcFolderPath));
-        }
+        let outputPath = path.join(this.outputPath, "custom-elements.html");
+        fs.writeFileSync(outputPath, output);
 
-        Promise.all(wcOutputs).then(outputs => {
-          let output = ""; 
-
-          for (const o of outputs) {
-            output += o;
-          }
-
-          const outputPath = path.join(this.outputPath, "custom-elements.html");
-          fs.writeFileSync(outputPath, output);
-
-          resolve();
-        });
+        outputPath = path.join(this.outputPath, "custom-elements.js");
+        fs.writeFileSync(outputPath, jsText);
       });
     });
   }
 
   build(): Promise<void> {
     const inputPath = this.inputPaths[0];
-    return this.buildInputNode(inputPath);
+    return this.buildWebComponents(inputPath);
   }
 }
 
