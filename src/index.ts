@@ -1,5 +1,4 @@
 //import FSTree from "fs-tree-diff"; // eslint-disable-line no-unused-vars
-//import heimdall from "heimdalljs"; // eslint-disable-line no-unused-vars
 //import { default as _logger } from "heimdalljs-logger";
 import * as fs from "fs";
 import * as path from "path";
@@ -9,16 +8,9 @@ const BroccoliPlugin = require("broccoli-plugin");
 
 //const logger = _logger("broccoli-web-components"); // eslint-disable-line no-unused-vars
 
-interface BroccoliPlugin {
-  outputPath: string;
-  inputPaths: string[];
-  constructor(inputNodes: string[], options: BroccoliNodeOptions): void;
-}
-
 interface BroccoliNodeOptions {
   name: string;
   annotation: string;
-  debugLog: boolean;
   persistentOutput: boolean;
 }
 
@@ -27,34 +19,16 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
   inputPaths: string[];
   outputPath: string;
 
-  private debugLog: boolean;
-
   constructor(
     folderPath: string,
-    options: BroccoliNodeOptions = {name: "", annotation: "", debugLog: false, persistentOutput: true}
-  ) {
+    options: BroccoliNodeOptions = {
+      name: "Broccoli Custom Elements",
+      annotation: "Broccoli Custom Elements",
+      persistentOutput: true
+  }) {
     super([folderPath], options);
 
     // Save references to options you may need later
-    this.debugLog = options.debugLog === true;
-  }
-
-  log(...args: any[]) {
-    if (!this.debugLog) {
-      return;
-    }
-
-    console.log("BWC:", ...args);
-  }
-
-  validatePath(path: string) {
-    if (!fs.existsSync(path)) {
-      this.log(`Not found: ${path}`);
-      return false;
-    } else {
-      this.log(`Found: ${path}`);
-      return true;
-    }
   }
 
   insertStyle(html: string, css: string): string {
@@ -66,7 +40,7 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
     const templatePath = path.join(folderPath, "template.html");
     const stylePath = path.join(folderPath, "style.css");
 
-    if (!this.validatePath(templatePath) || !this.validatePath(stylePath)) {
+    if (!fs.existsSync(templatePath) || !fs.existsSync(stylePath)) {
       return Promise.resolve("");
     }
 
@@ -80,7 +54,9 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
 
   buildWebComponents(folderPath: string): Promise<void> {
     return readFolderFiles(folderPath).then(filePaths => {
-      const wcOutputs = [];
+
+      const wcOutputs: Promise<string>[] = [];
+
       for (const filePath of filePaths) {
         const wcFolderPath = path.join(folderPath, filePath);
         wcOutputs.push(this.buildWebComponent(wcFolderPath));
@@ -108,7 +84,6 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
 
   build(): Promise<void> {
     const inputPath = this.inputPaths[0];
-    return this.buildWebComponents(inputPath);
+    return this.buildWebComponents(inputPath)
   }
 }
-

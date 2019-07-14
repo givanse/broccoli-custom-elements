@@ -1,25 +1,18 @@
-//const typescript = require("broccoli-typescript-compiler").default;
 import typescript from "broccoli-typescript-compiler";
+import * as path from "path";
 
-export default function(/*options*/) {
+const tsconfigSrc = path.join(__dirname, "tsconfig.json");
+const tsconfigTests = path.join(__dirname, "tests", "tsconfig.json");
+
+export default function(options) {
+
+  let tsconfig = tsconfigSrc;
+  if (options.env === "tests") {
+    tsconfig = tsconfigTests;
+  }
 
   const cjs = typescript(".", {
-    tsconfig: {
-      compilerOptions: {
-        module: "commonjs", 
-        target: "es2017",
-        lib: ["es2017"],
-        moduleResolution: "node",
-        newLine: "LF",
-        //noEmitHelpers: true,
-        rootDir: "src",
-        outDir: "dist",
-        sourceMap: true,
-        strictNullChecks: true,
-        declaration: true,
-      },
-      files: ["src/index.ts"],
-    },
+    tsconfig,
     throwOnError: false,
     annotation: "compile program",
   });
