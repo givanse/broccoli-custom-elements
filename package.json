@@ -9,7 +9,7 @@
     "build:serve": "broccoli serve",
     "test": "broccoli build -e tests && mocha dist/tests/*-test.js --reporter tap",
     "test:watch": "testem",
-    "prepublish": "npm run build",
+    "prepublish": "npm run test && npm run build",
     "debug:build": "node --nolazy --inspect-brk=9229 ./node_modules/.bin/broccoli build -e tests",
     "debug:test": "node --nolazy --inspect-brk=9229 ./node_modules/.bin/mocha dist/tests/index.js"
   },
@@ -50,10 +50,18 @@
     "typescript": "^3.5.3"
   },
   "dependencies": {
+    "@babel/core": "^7.5.4",
+    "@babel/preset-env": "^7.5.4",
+    "@babel/preset-typescript": "^7.3.3",
     "broccoli-plugin": "^2.1.0",
+    "broccoli-rollup": "^4.1.1",
     "fs-tree-diff": "^2.0.1",
     "heimdalljs": "^0.2.6",
-    "heimdalljs-logger": "^0.1.10"
+    "heimdalljs-logger": "^0.1.10",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-commonjs": "^10.0.1",
+    "rollup-plugin-multi-entry": "^2.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0"
   },
   "engines": {
     "node": "8.* || >= 10.*"

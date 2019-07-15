@@ -1,42 +1,76 @@
+//TODO: add caching, calculatePatch() etc.
 //import FSTree from "fs-tree-diff"; // eslint-disable-line no-unused-vars
-//import { default as _logger } from "heimdalljs-logger";
 import * as fs from "fs";
 import * as path from "path";
 import {readFile, readFolderFiles} from "./io";
-import bundler from "./bundler";
+const MergeTrees: any = require("broccoli-merge-trees");
 const BroccoliPlugin = require("broccoli-plugin");
+import { BroccoliRollup, BroccoliRollupOptions, RollupOptions } from "broccoli-rollup";
+const commonjs = require("rollup-plugin-commonjs");
+const resolve = require("rollup-plugin-node-resolve");
+const babel = require("rollup-plugin-babel");
+const multiEntry = require("rollup-plugin-multi-entry");
 
-//const logger = _logger("broccoli-web-components"); // eslint-disable-line no-unused-vars
-
-interface BroccoliNodeOptions {
+export interface BroccoliNodeOptions {
   name: string;
   annotation: string;
   persistentOutput: boolean;
+  rollupConfig: RollupOptions | null;
 }
+
+type WebComponentPromise = Promise<string>;
+type WebComponentPromises = WebComponentPromise[]; 
+
+const DEFAULT_ROLLUP_CONFIG: RollupOptions = {
+  input: "**/*.ts",
+  output: [
+    {
+      name: "customElements",
+      file: "custom-elements.iife.js",
+      format: "iife",
+    },
+    {
+      file: "custom-elements.es.js",
+      format: "esm",
+    },
+  ],
+  plugins: [
+    multiEntry(),
+    commonjs(),
+    resolve(),
+    babel({
+      presets: [
+        "@babel/preset-env",
+        "@babel/preset-typescript",
+      ]
+    }),
+  ],
+};
 
 export default class BroccoliCustomElements extends BroccoliPlugin {
 
-  inputPaths: string[];
-  outputPath: string;
+  private rollupConfig: RollupOptions | null = null;
+  private broccoliRollup: BroccoliRollup;
 
   constructor(
     folderPath: string,
     options: BroccoliNodeOptions = {
-      name: "Broccoli Custom Elements",
-      annotation: "Broccoli Custom Elements",
-      persistentOutput: true
+      name: "Custom Elements",
+      annotation: "Custom Elements",
+      persistentOutput: true,
+      rollupConfig: null,
   }) {
     super([folderPath], options);
 
-    // Save references to options you may need later
+    this.rollupConfig = options.rollupConfig;
   }
 
-  insertStyle(html: string, css: string): string {
+  private insertStyle(html: string, css: string): string {
     css = `<style>${css}</style>`;
     return html.replace(/^\w*<template[^>]*>/, "$&" + css);
   }
 
-  buildWebComponent(folderPath: string): Promise<string> {
+  private buildWebComponent(folderPath: string): WebComponentPromise {
     const templatePath = path.join(folderPath, "template.html");
     const stylePath = path.join(folderPath, "style.css");
 
@@ -52,38 +86,57 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
     });
   }
 
-  buildWebComponents(folderPath: string): Promise<void> {
+  private buildWebComponents(folderPath: string): Promise<string[]> {
     return readFolderFiles(folderPath).then(filePaths => {
-
-      const wcOutputs: Promise<string>[] = [];
-
-      for (const filePath of filePaths) {
+      const wcOutputs = filePaths
+      .reduce((acc: WebComponentPromises, filePath): WebComponentPromises => {
         const wcFolderPath = path.join(folderPath, filePath);
-        wcOutputs.push(this.buildWebComponent(wcFolderPath));
+        acc.push(this.buildWebComponent(wcFolderPath));
+        return acc;
+      }, []);
 
-        const jsFilePath = path.join(folderPath, filePath, "index.ts");
-        bundler.addCustomElementJSToBundle(jsFilePath);
-      }
+      return Promise.all(wcOutputs).then((results: string[]) => {
+        const output = results.reduce(function(acc, r) {
+          return acc + r;
+        });
 
-      return Promise.all([bundler.getJSText(), ...wcOutputs]).then(results => {
-        const jsText = results.shift();
-
-        let output = ""; 
-        for (const o of results) {
-          output += o;
-        }
-
-        let outputPath = path.join(this.outputPath, "custom-elements.html");
-        fs.writeFileSync(outputPath, output);
-
-        outputPath = path.join(this.outputPath, "custom-elements.js");
-        fs.writeFileSync(outputPath, jsText);
+        const outputPath = path.join(this.outputPath, "custom-elements.html");
+        return [outputPath, output];
       });
     });
   }
 
-  build(): Promise<void> {
+  private getRollupConfig(): RollupOptions {
+    return this.rollupConfig || DEFAULT_ROLLUP_CONFIG;
+  }
+
+  private async buildJS(inputPath: string): Promise<void> {
+    if (!this.broccoliRollup) {
+      const options: BroccoliRollupOptions = {
+        annotation: "custom elements js",
+        rollup: this.getRollupConfig()
+      };
+
+      this.broccoliRollup = new BroccoliRollup(inputPath, options);
+    }
+
+    return this.broccoliRollup.build();
+  }
+
+  public async build(): Promise<void> {
     const inputPath = this.inputPaths[0];
-    return this.buildWebComponents(inputPath)
+
+    const wcPromise = this.buildWebComponents(inputPath);
+
+    const jsPromise = this.buildJS(inputPath);
+
+    const [wc] = await Promise.all([wcPromise, jsPromise]);
+
+    const [outputPath, output] = wc;
+    fs.writeFileSync(outputPath, output);
+
+    //return new MergeTrees([js], {
+      //annotation: "custom elements html + js"
+    //});
   }
 }

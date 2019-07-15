@@ -15,13 +15,11 @@ describe('BroccoliCustomElements', function() {
 
   it('should build', async function() {
     input.write({
-      //"components-root": {
       "lorem-ipsum": {
         "template.html": "<template></template>",
         "style.css": ":host{}",
         "index.ts": "class CE {}",
       }
-      //}
     });
 
     let node = new BroccoliCustomElements(input.path());
