@@ -2,7 +2,6 @@
 //import FSTree from "fs-tree-diff"; // eslint-disable-line no-unused-vars
 import * as fs from "fs";
 import * as path from "path";
-import {readFile, readFolderFiles} from "./io";
 const MergeTrees: any = require("broccoli-merge-trees");
 const BroccoliPlugin = require("broccoli-plugin");
 import { BroccoliRollup, BroccoliRollupOptions, RollupOptions } from "broccoli-rollup";
@@ -10,6 +9,9 @@ const commonjs = require("rollup-plugin-commonjs");
 const resolve = require("rollup-plugin-node-resolve");
 const babel = require("rollup-plugin-babel");
 const multiEntry = require("rollup-plugin-multi-entry");
+const walkSync = require('walk-sync');
+
+//TODO: Use MultiFilter css + html => html ?
 
 export interface BroccoliNodeOptions {
   name: string;
@@ -47,6 +49,18 @@ const DEFAULT_ROLLUP_CONFIG: RollupOptions = {
   ],
 };
 
+function readFile(filePath: string): Promise<string> {
+  return new Promise(function(resolve, reject) {
+    fs.readFile(filePath, "utf8", function(err, text) {
+      if (err) {
+        reject(err);
+      }
+
+      resolve(text);
+    });
+  });
+}
+
 export default class BroccoliCustomElements extends BroccoliPlugin {
 
   private rollupConfig: RollupOptions | null = null;
@@ -70,7 +84,7 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
     return html.replace(/^\w*<template[^>]*>/, "$&" + css);
   }
 
-  private buildWebComponent(folderPath: string): WebComponentPromise {
+  private buildWebComponent(folderPath: string): Promise<string> {
     const templatePath = path.join(folderPath, "template.html");
     const stylePath = path.join(folderPath, "style.css");
 
@@ -87,22 +101,28 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
   }
 
   private buildWebComponents(folderPath: string): Promise<string[]> {
-    return readFolderFiles(folderPath).then(filePaths => {
-      const wcOutputs = filePaths
-      .reduce((acc: WebComponentPromises, filePath): WebComponentPromises => {
-        const wcFolderPath = path.join(folderPath, filePath);
-        acc.push(this.buildWebComponent(wcFolderPath));
-        return acc;
-      }, []);
+    const folderNames = walkSync(folderPath, {
+      directories: true,
+      globs: ["*/"],
+      includeBase: false,
+    });
 
-      return Promise.all(wcOutputs).then((results: string[]) => {
-        const output = results.reduce(function(acc, r) {
-          return acc + r;
-        });
+    const wcOutputs: Promise<string>[] = folderNames
+    .reduce((acc: WebComponentPromises, folderName): WebComponentPromises => {
+      const wcFolderPath = path.join(folderPath, folderName);
+      const wcPromise = this.buildWebComponent(wcFolderPath);
+      acc.push(wcPromise);
+      return acc;
+    }, []);
 
-        const outputPath = path.join(this.outputPath, "custom-elements.html");
-        return [outputPath, output];
-      });
+    return Promise.all(wcOutputs)
+    .then((webComponents: string[]) => {
+      const templates = webComponents.reduce(function(acc, webComponentTxt) {
+        return acc + webComponentTxt;
+      }, "");
+
+      const outputPath = path.join(this.outputPath, "custom-elements.html");
+      return [outputPath, templates];
     });
   }
 
