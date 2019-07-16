@@ -62,6 +62,7 @@
     "rollup-plugin-commonjs": "^10.0.1",
     "rollup-plugin-multi-entry": "^2.1.0",
     "rollup-plugin-node-resolve": "^5.2.0",
+    "stylus": "^0.54.5",
     "walk-sync": "^2.0.2"
   },
   "engines": {

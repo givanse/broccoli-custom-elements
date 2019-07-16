@@ -9,7 +9,8 @@ const commonjs = require("rollup-plugin-commonjs");
 const resolve = require("rollup-plugin-node-resolve");
 const babel = require("rollup-plugin-babel");
 const multiEntry = require("rollup-plugin-multi-entry");
-const walkSync = require('walk-sync');
+const walkSync = require("walk-sync");
+const stylus = require("stylus");
 
 //TODO: Use MultiFilter css + html => html ?
 
@@ -84,18 +85,37 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
     return html.replace(/^\w*<template[^>]*>/, "$&" + css);
   }
 
+  public preprocessCSS(text: string): Promise<string> {
+    const s = stylus(text);
+
+    //TODO: add includes
+
+    return new Promise(function(resolve, reject) {
+      s.render(function (err, data) {
+        if (err) {
+          reject(err);
+        }
+  
+        resolve(data);
+      });
+    });
+  }
+
   private buildWebComponent(folderPath: string): Promise<string> {
     const templatePath = path.join(folderPath, "template.html");
-    const stylePath = path.join(folderPath, "style.css");
+    const stylePath = path.join(folderPath, "style.styl"); //TODO: css is valid too
 
     if (!fs.existsSync(templatePath) || !fs.existsSync(stylePath)) {
-      return Promise.resolve("");
+      const m = "Couldn't find either one of:\n" +
+                `  ${templatePath}\n  ${stylePath}`; 
+      throw new Error(m);
     }
 
     return Promise.all([
       readFile(templatePath),
       readFile(stylePath),
-    ]).then(([html, css]) => {
+    ]).then(async ([html, style]) => {
+      const css = await this.preprocessCSS(style);
       return this.insertStyle(html, css);
     });
   }
