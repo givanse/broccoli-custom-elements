@@ -128,9 +128,9 @@ export default class BroccoliCustomElements extends BroccoliPlugin {
 
     const wcPromise = this.buildWebComponents(inputPath);
 
-    const jsPromise = this.buildJS(inputPath);
+    //const jsPromise = this.buildJS(inputPath);
 
-    const [wc] = await Promise.all([wcPromise, jsPromise]);
+    const [wc] = await Promise.all([wcPromise/*, jsPromise*/]);
 
     const [outputPath, output] = wc;
     fs.writeFileSync(outputPath, output);
